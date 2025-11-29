@@ -16,9 +16,9 @@ contract InnChain is Ownable {
         // -----------------------------------------------------
         // 1) Buat kelas kamar global (harga flat)
         // -----------------------------------------------------
-        uint256 standardId = _createRoomClass("Standard", 10 * 1e12);
-        uint256 deluxeId   = _createRoomClass("Deluxe", 20 * 1e12);
-        uint256 suiteId    = _createRoomClass("Suite", 30 * 1e12);
+        uint256 standardId = _createRoomClass("Standard", 12 * 1e18);
+        uint256 deluxeId   = _createRoomClass("Deluxe", 24 * 1e18);
+        uint256 suiteId    = _createRoomClass("Suite", 35 * 1e18);
 
         // -----------------------------------------------------
         // 2) Buat 4 dummy hotel + assign kelas yang dipakai
@@ -62,6 +62,23 @@ contract InnChain is Ownable {
         uint256 id;
         string name;
         uint256 pricePerNight;
+    }
+
+    struct BookingDetails {
+        uint256 bookingId;
+        uint256 hotelId;
+        string hotelName;
+        uint256 classId;
+        string className;
+        uint256 nights;
+        uint256 pricePerNight;
+        uint256 roomCost;
+        uint256 depositAmount;
+        uint256 totalAmount;
+        bool paidRoom;
+        bool roomReleased;
+        bool depositReleased;
+        string status;
     }
 
     mapping(uint256 => RoomClass) public roomClasses;
@@ -157,6 +174,17 @@ contract InnChain is Ownable {
         emit HotelClassLinked(hotelId, classId);
     }
 
+    function _getBookingStatus(Booking storage b)
+        internal
+        view
+        returns (string memory)
+    {
+        if (!b.paidRoom) return "Not Paid";
+        if (!b.roomReleased) return "Paid - Waiting Check-in";
+        if (!b.depositReleased) return "Checked-in - Deposit Pending";
+        return "Completed";
+    }
+
     // =========================================================
     // BOOKING + ESCROW (roomCost + deposit)
     // =========================================================
@@ -250,6 +278,49 @@ contract InnChain is Ownable {
         return bookingCount;
     }
 
+    function getCustomerBookings()
+        external
+        view
+        returns (BookingDetails[] memory)
+    {
+        BookingDetails[] memory customerBookings = new BookingDetails[](bookingCount);
+        uint256 count = 0;
+
+        for (uint256 i = 1; i <= bookingCount; i++) {
+            Booking storage b = _bookings[i];
+            if (b.customer == msg.sender) {
+                Hotel storage h = _hotels[b.hotelId];
+                RoomClass storage rc = roomClasses[b.classId];
+
+                customerBookings[count] = BookingDetails({
+                    bookingId: i,
+                    hotelId: b.hotelId,
+                    hotelName: h.name,
+                    classId: b.classId,
+                    className: rc.name,
+                    nights: b.nights,
+                    pricePerNight: rc.pricePerNight,
+                    roomCost: b.roomCost,
+                    depositAmount: b.depositAmount,
+                    totalAmount: b.roomCost + b.depositAmount,
+                    paidRoom: b.paidRoom,
+                    roomReleased: b.roomReleased,
+                    depositReleased: b.depositReleased,
+                    status: _getBookingStatus(b)
+                });
+                count++;
+            }
+        }
+
+        // Trim the array to actual size
+        BookingDetails[] memory result = new BookingDetails[](count);
+        for (uint256 i = 0; i < count; i++) {
+            result[i] = customerBookings[i];
+        }
+
+        return result;
+    }
+
     /// @notice Hotel mengkonfirmasi check-in → roomCost dibayar ke hotel
     function confirmCheckIn(uint256 bookingId) external {
         Booking storage b = _bookings[bookingId];
@@ -295,7 +366,6 @@ contract InnChain is Ownable {
         require(b.customer != address(0), "Booking: not found");
 
         Hotel storage h = _hotels[b.hotelId];
-        require(msg.sender == h.wallet, "Deposit: only hotel");
         require(!b.depositReleased, "Deposit: already handled");
         require(amount <= b.depositAmount, "Deposit: too much");
 
