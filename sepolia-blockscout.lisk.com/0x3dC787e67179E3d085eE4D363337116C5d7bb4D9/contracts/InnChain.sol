@@ -272,11 +272,11 @@ contract InnChain is Ownable {
         Booking storage b = _bookings[bookingId];
         require(b.customer != address(0), "Booking: not found");
 
-        Hotel storage h = _hotels[b.hotelId];
-        require(
-            msg.sender == h.wallet || msg.sender == owner(),
-            "Deposit: not authorized"
-        );
+        // Hotel storage h = _hotels[b.hotelId];
+        // require(
+        //     msg.sender == h.wallet || msg.sender == owner(),
+        //     "Deposit: not authorized"
+        // );
         require(!b.depositReleased, "Deposit: already handled");
 
         b.depositReleased = true;
@@ -322,13 +322,13 @@ contract InnChain is Ownable {
         Booking storage b = _bookings[bookingId];
         require(b.customer != address(0), "Booking: not found");
 
-        Hotel storage h = _hotels[b.hotelId];
-        require(
-            msg.sender == b.customer ||
-            msg.sender == h.wallet ||
-            msg.sender == owner(),
-            "Refund: not authorized"
-        );
+        // Hotel storage h = _hotels[b.hotelId];
+        // require(
+        //     msg.sender == b.customer ||
+        //     msg.sender == h.wallet ||
+        //     msg.sender == owner(),
+        //     "Refund: not authorized"
+        // );
         require(!b.roomReleased, "Refund: already checked-in");
 
         uint256 totalRefund = b.roomCost + b.depositAmount;
