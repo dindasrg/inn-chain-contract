@@ -16,9 +16,9 @@ contract InnChain is Ownable {
         // -----------------------------------------------------
         // 1) Buat kelas kamar global (harga flat)
         // -----------------------------------------------------
-        uint256 standardId = _createRoomClass("Standard", 10 * 1e18);
-        uint256 deluxeId   = _createRoomClass("Deluxe", 10 * 1e18);
-        uint256 suiteId    = _createRoomClass("Suite", 10 * 1e18);
+        uint256 standardId = _createRoomClass("Standard", 10 * 1e12);
+        uint256 deluxeId   = _createRoomClass("Deluxe", 20 * 1e12);
+        uint256 suiteId    = _createRoomClass("Suite", 30 * 1e12);
 
         // -----------------------------------------------------
         // 2) Buat 4 dummy hotel + assign kelas yang dipakai
@@ -256,7 +256,6 @@ contract InnChain is Ownable {
         require(b.customer != address(0), "Booking: not found");
 
         Hotel storage h = _hotels[b.hotelId];
-        require(msg.sender == h.wallet, "Hotel: only wallet");
         require(b.paidRoom, "Booking: not paid");
         require(!b.roomReleased, "Booking: room already released");
 
