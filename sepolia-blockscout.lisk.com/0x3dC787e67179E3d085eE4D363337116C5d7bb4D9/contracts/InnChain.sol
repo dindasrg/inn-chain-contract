@@ -50,6 +50,20 @@ contract InnChain is Ownable {
         uint256 pricePerNight;
     }
 
+    struct HotelDetails {
+        uint256 id;
+        string name;
+        address wallet;
+        uint256 classCount;
+        ClassDetails[] classes;
+    }
+
+    struct ClassDetails {
+        uint256 id;
+        string name;
+        uint256 pricePerNight;
+    }
+
     mapping(uint256 => RoomClass) public roomClasses;
     uint256 public roomClassCount;
 
@@ -344,46 +358,40 @@ contract InnChain is Ownable {
         return (h.registered, h.name, h.wallet, h.classCount);
     }
 
-function getAllHotels()
-    external
-    view
-    returns (
-        uint256[] memory hotelIds,
-        string[] memory hotelNames,
-        address[] memory hotelWallets,
-        uint256[][] memory hotelClassIds,  // Array of class IDs per hotel
-        string[][] memory hotelClassNames,  // Array of class names per hotel
-        uint256[][] memory hotelClassPrices // Array of class prices per hotel
-    )
-{
-    hotelIds = new uint256[](hotelCount);
-    hotelNames = new string[](hotelCount);
-    hotelWallets = new address[](hotelCount);
-    hotelClassIds = new uint256[][](hotelCount);
-    hotelClassNames = new string[][](hotelCount);
-    hotelClassPrices = new uint256[][](hotelCount);
+    function getAllHotelsWithDetails()
+        external
+        view
+        returns (HotelDetails[] memory)
+    {
+        HotelDetails[] memory hotels = new HotelDetails[](hotelCount);
 
-    for (uint256 i = 1; i <= hotelCount; i++) {
-        Hotel storage h = _hotels[i];
-        hotelIds[i - 1] = i;
-        hotelNames[i - 1] = h.name;
-        hotelWallets[i - 1] = h.wallet;
+        for (uint256 i = 1; i <= hotelCount; i++) {
+            Hotel storage h = _hotels[i];
+            ClassDetails[] memory classDetails = new ClassDetails[](h.classCount);
 
-        // Initialize arrays for this hotel's classes
-        hotelClassIds[i - 1] = new uint256[](h.classCount);
-        hotelClassNames[i - 1] = new string[](h.classCount);
-        hotelClassPrices[i - 1] = new uint256[](h.classCount);
+            // Populate class details for this hotel
+            for (uint256 j = 0; j < h.classCount; j++) {
+                uint256 classId = h.classIds[j];
+                RoomClass storage rc = roomClasses[classId];
+                classDetails[j] = ClassDetails({
+                    id: classId,
+                    name: rc.name,
+                    pricePerNight: rc.pricePerNight
+                });
+            }
 
-        // Populate class details for this hotel
-        for (uint256 j = 0; j < h.classCount; j++) {
-            uint256 classId = h.classIds[j];
-            RoomClass storage rc = roomClasses[classId];
-            hotelClassIds[i - 1][j] = classId;
-            hotelClassNames[i - 1][j] = rc.name;
-            hotelClassPrices[i - 1][j] = rc.pricePerNight;
+            // Create hotel details
+            hotels[i-1] = HotelDetails({
+                id: i,
+                name: h.name,
+                wallet: h.wallet,
+                classCount: h.classCount,
+                classes: classDetails
+            });
         }
+
+        return hotels;
     }
-}
 
     /// @notice list semua kelas global
     function getAllRoomClasses()
